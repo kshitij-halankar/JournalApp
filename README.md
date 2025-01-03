@@ -1,0 +1,2 @@
+# JournalApp
+Journalling Android App
