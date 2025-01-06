@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Journal</string>
+    <string name="streak">Streak</string>
+    <string name="title_activity_open_image">OpenImageActivity</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
+    <string name="welcome_to_journal">Welcome To Journal</string>
+    <string name="enter_your_name">Enter Your Name</string>
+    <string name="enter_name">Enter Name</string>
+    <string name="next">Next</string>
+</resources>
