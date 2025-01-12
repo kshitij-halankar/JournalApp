@@ -31,20 +31,21 @@ public class OpenImage extends AppCompatActivity {
 
         fullImage = findViewById(R.id.fullImage);
         selectedDate = getIntent().getStringExtra("selectedDate");
-        loadJournalEntry(selectedDate);
+        String type = getIntent().getStringExtra("Type");
+        loadJournalEntry(selectedDate, type);
 
     }
 
-    private void loadJournalEntry(String date) {
+    private void loadJournalEntry(String date, String type) {
         DatabaseHelper dbHelper = new DatabaseHelper(this);
         Cursor cursor = dbHelper.getEntryByDate(date);
 
         if (cursor != null && cursor.moveToFirst()) {
-            String existingImagePath = cursor.getString((int) cursor.getColumnIndex("imagePath"));
+            String existingImagePath = cursor.getString((int) cursor.getColumnIndex(
+                    type));
 
             if (existingImagePath != null) {
                 Bitmap bitmap = BitmapFactory.decodeFile(existingImagePath);
-                Log.e("Compressed dimensions", bitmap.getWidth()+" "+bitmap.getHeight());
                 fullImage.setImageBitmap(bitmap);
             }
         } else {

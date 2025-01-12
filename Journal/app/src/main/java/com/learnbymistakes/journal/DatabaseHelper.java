@@ -10,11 +10,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "Journal.db";
     private static final int DATABASE_VERSION = 1;
-    private static final String TABLE_NAME = "journal_entries";
-    private static final String COLUMN_ID = "id";
-    private static final String COLUMN_DATE = "date";
-    private static final String COLUMN_TEXT = "text";
-    private static final String COLUMN_IMAGE_PATH = "imagePath";
+    private static final String TABLE_NAME = "journal_entries",
+            COLUMN_ID = "id",
+            COLUMN_DATE = "date",
+            COLUMN_TEXT = "text",
+            COLUMN_JOURNAL_IMAGE_PATH = "journalImagePath",
+            COLUMN_TASK_IMAGE_PATH = "taskImagePath",
+            COLUMN_PLANNER_IMAGE_PATH = "plannerImagePath";
 
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -26,7 +28,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 COLUMN_DATE + " TEXT UNIQUE, " +
                 COLUMN_TEXT + " TEXT, " +
-                COLUMN_IMAGE_PATH + " TEXT)";
+                COLUMN_JOURNAL_IMAGE_PATH + " TEXT, " +
+                COLUMN_TASK_IMAGE_PATH + " TEXT, " +
+                COLUMN_PLANNER_IMAGE_PATH + " TEXT)";
         sqLiteDatabase.execSQL(createTable);
     }
 
@@ -36,12 +40,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         onCreate(sqLiteDatabase);
     }
 
-    public boolean saveEntry(String date, String text, String imagePath) {
+    public boolean saveEntry(String date, String text, String journalImagePath,
+                             String taskImagePath, String plannerImagePath) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_DATE, date);
         values.put(COLUMN_TEXT, text);
-        values.put(COLUMN_IMAGE_PATH, imagePath);
+        values.put(COLUMN_JOURNAL_IMAGE_PATH, journalImagePath);
+        values.put(COLUMN_TASK_IMAGE_PATH, taskImagePath);
+        values.put(COLUMN_PLANNER_IMAGE_PATH, plannerImagePath);
 
         long result = db.replace(TABLE_NAME, null, values);
         return result != -1;

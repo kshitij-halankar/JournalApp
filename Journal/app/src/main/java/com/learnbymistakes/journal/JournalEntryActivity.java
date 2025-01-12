@@ -8,6 +8,7 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -34,17 +35,35 @@ public class JournalEntryActivity extends AppCompatActivity {
 
     EditText journalText;
     TextView journalDate;
-    ImageView journalImg;
-    Button journalCamera, journalImgDelete, journalSave;
-    Uri imageUri;
+    ImageView journalImg, taskImg, plannerImg;
+    ImageView journalCam, taskCam, plannerCam;
+    ImageView journalDelete, taskDelete, plannerDelete;
+    Button journalSave;
     String selectedDate;
-    String imagePath;
     private static final int REQUEST_CAMERA_PERMISSION_CODE = 1;
-    Uri photoUri;
-    private ActivityResultLauncher<Uri> cameraLauncher =
+    Uri journalImgUri, taskImgUri, plannerImgUri;
+    private ActivityResultLauncher<Uri> journalCameraLauncher =
             registerForActivityResult(new ActivityResultContracts.TakePicture(), result -> {
                 if (result) {
-                    displayImage();
+                    displayJournalImage();
+                    Toast.makeText(this, "Image saved successfully", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Image capture cancelled", Toast.LENGTH_SHORT).show();
+                }
+            });
+    private ActivityResultLauncher<Uri> taskCameraLauncher =
+            registerForActivityResult(new ActivityResultContracts.TakePicture(), result -> {
+                if (result) {
+                    displayTaskImage();
+                    Toast.makeText(this, "Image saved successfully", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Image capture cancelled", Toast.LENGTH_SHORT).show();
+                }
+            });
+    private ActivityResultLauncher<Uri> plannerCameraLauncher =
+            registerForActivityResult(new ActivityResultContracts.TakePicture(), result -> {
+                if (result) {
+                    displayPlannerImage();
                     Toast.makeText(this, "Image saved successfully", Toast.LENGTH_SHORT).show();
                 } else {
                     Toast.makeText(this, "Image capture cancelled", Toast.LENGTH_SHORT).show();
@@ -62,44 +81,103 @@ public class JournalEntryActivity extends AppCompatActivity {
             return insets;
         });
 
-        journalText = findViewById(R.id.journalText);
-        journalDate = findViewById(R.id.journalDate);
-        journalImg = findViewById(R.id.journalImg);
-        journalCamera = findViewById(R.id.journalCamera);
-        journalImgDelete = findViewById(R.id.journalImgDelete);
-        journalSave = findViewById(R.id.journalSave);
-
-        selectedDate = getIntent().getStringExtra("selectedDate");
-        journalText.setText(selectedDate);
+        registerViews();
 
         loadJournalEntry(selectedDate);
 
-        journalCamera.setOnClickListener(v -> openCamera());
-        journalSave.setOnClickListener(v -> saveJournalEntry());
-        journalImgDelete.setOnClickListener(v -> deleteImage());
+        journalCam.setOnClickListener(v -> openJournalCamera());
+        taskCam.setOnClickListener(v -> openTaskCamera());
+        plannerCam.setOnClickListener(v -> openPlannerCamera());
+
+        journalDelete.setOnClickListener(v -> deleteImage("journal"));
+        taskDelete.setOnClickListener(v -> deleteImage("task"));
+        plannerDelete.setOnClickListener(v -> deleteImage("planner"));
+
         journalImg.setOnClickListener(view -> {
             Intent intent = new Intent(JournalEntryActivity.this, OpenImage.class);
             intent.putExtra("selectedDate", selectedDate);
+            intent.putExtra("Type", "journalImagePath");
             startActivity(intent);
         });
+
+        taskImg.setOnClickListener(view -> {
+            Intent intent = new Intent(JournalEntryActivity.this, OpenImage.class);
+            intent.putExtra("selectedDate", selectedDate);
+            intent.putExtra("Type", "taskImagePath");
+            startActivity(intent);
+        });
+
+        plannerImg.setOnClickListener(view -> {
+            Intent intent = new Intent(JournalEntryActivity.this, OpenImage.class);
+            intent.putExtra("selectedDate", selectedDate);
+            intent.putExtra("Type", "plannerImagePath");
+            startActivity(intent);
+        });
+
+        journalSave.setOnClickListener(v -> saveJournalEntry());
     }
 
-    private void openCamera() {
+    private void registerViews() {
+
+        journalText = findViewById(R.id.journalText);
+        journalDate = findViewById(R.id.journalDate);
+
+        journalImg = findViewById(R.id.journalImg);
+        taskImg = findViewById(R.id.taskImg);
+        plannerImg = findViewById(R.id.plannerImg);
+
+        journalCam = findViewById(R.id.journalCam);
+        taskCam = findViewById(R.id.taskCam);
+        plannerCam = findViewById(R.id.plannerCam);
+
+        journalDelete = findViewById(R.id.journalDelete);
+        taskDelete = findViewById(R.id.taskDelete);
+        plannerDelete = findViewById(R.id.plannerDelete);
+
+        journalSave = findViewById(R.id.journalSave);
+        selectedDate = getIntent().getStringExtra("selectedDate");
+        journalDate.setText(selectedDate);
+    }
+
+    private void openJournalCamera() {
+        checkCameraPermission();
+        journalImgUri = createImageUri("Journal_");
+        if (journalImgUri != null) {
+            journalCameraLauncher.launch(journalImgUri);
+        } else {
+            Toast.makeText(this, "Unable to create Journal image file", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void openTaskCamera() {
+        checkCameraPermission();
+        taskImgUri = createImageUri("Task_");
+        if (taskImgUri != null) {
+            taskCameraLauncher.launch(taskImgUri);
+        } else {
+            Toast.makeText(this, "Unable to create Task image file", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void openPlannerCamera() {
+        checkCameraPermission();
+        plannerImgUri = createImageUri("Planner_");
+        if (plannerImgUri != null) {
+            plannerCameraLauncher.launch(plannerImgUri);
+        } else {
+            Toast.makeText(this, "Unable to create Planner image file", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void checkCameraPermission() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION_CODE);
             return;
         }
-
-        photoUri = createImageUri();
-        if (photoUri != null) {
-            cameraLauncher.launch(photoUri);
-        } else {
-            Toast.makeText(this, "Unable to create image file", Toast.LENGTH_SHORT).show();
-        }
     }
 
-    private Uri createImageUri() {
-        String imageName = "Journal_" + System.currentTimeMillis() + ".png";
+    private Uri createImageUri(String imgName) {
+        String imageName = imgName + System.currentTimeMillis() + ".png";
         ContentValues values = new ContentValues();
         values.put(MediaStore.Images.Media.DISPLAY_NAME, imageName);
         values.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
@@ -107,24 +185,13 @@ public class JournalEntryActivity extends AppCompatActivity {
         return getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
     }
 
-
-    private void displayImage() {
-        try {
-            Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(photoUri));
-            journalImg.setImageBitmap(bitmap);
-        } catch (Exception e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private void saveJournalEntry() {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-
-        try {
-            Cursor cursor = getContentResolver().query(photoUri,
+    private String setCursor(Uri imgUri) throws ParseException {
+        String imagePath = "";
+        if (imgUri != null) {
+            Cursor cursor = getContentResolver().query(imgUri,
                     new String[]{MediaStore.Images.Media.DATA},
                     null, null, null);
+
             if (cursor != null && cursor.moveToFirst()) {
                 int dataIndex = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
                 if (dataIndex != -1) {
@@ -132,14 +199,41 @@ public class JournalEntryActivity extends AppCompatActivity {
                 }
                 cursor.close();
             }
+        }
+        return imagePath;
+    }
+
+    private void saveJournalEntry() {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        String journalImagePath = "", taskImagePath = "", plannerImagePath = "";
+        try {
+            String journalImgPath = setCursor(journalImgUri);
+            String taskImgPath = setCursor(taskImgUri);
+            String plannerImgPath = setCursor(plannerImgUri);
+
             Date selected = dateFormat.parse(selectedDate);
+
+            DatabaseHelper dbHelper = new DatabaseHelper(this);
+            Cursor cursor = dbHelper.getEntryByDate(selectedDate);
+            if (cursor != null && cursor.moveToFirst()) {
+                journalImagePath = cursor.getString((int) cursor.getColumnIndex(
+                        "journalImagePath"));
+                taskImagePath = cursor.getString((int) cursor.getColumnIndex("taskImagePath"));
+                plannerImagePath = cursor.getString((int) cursor.getColumnIndex("plannerImagePath"));
+                cursor.close();
+            }
+
+            journalImgPath = journalImgPath.isEmpty() ? journalImagePath : journalImgPath;
+            taskImgPath = taskImgPath.isEmpty() ? taskImagePath : taskImgPath;
+            plannerImgPath = plannerImgPath.isEmpty() ? plannerImagePath : plannerImgPath;
+
             Date today = new Date();
             long entryDiff = (today.getTime() - selected.getTime()) / (1000 * 60 * 60 * 24);
             if (entryDiff < 1) {
                 String text = journalText.getText().toString();
 
-                DatabaseHelper dbHelper = new DatabaseHelper(this);
-                boolean isSaved = dbHelper.saveEntry(selectedDate, text, imagePath);
+                boolean isSaved = dbHelper.saveEntry(selectedDate, text, journalImgPath,
+                        taskImgPath, plannerImgPath);
 
                 if (isSaved) {
                     Toast.makeText(this, "Entry saved!", Toast.LENGTH_SHORT).show();
@@ -152,7 +246,6 @@ public class JournalEntryActivity extends AppCompatActivity {
                     Date lastDate = lastJournalDate != null
                             ? dateFormat.parse(lastJournalDate)
                             : new Date();
-
 
                     long streakDiff =
                             (selected.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
@@ -179,9 +272,23 @@ public class JournalEntryActivity extends AppCompatActivity {
         finish();
     }
 
-    private void deleteImage() {
-        journalImg.setImageResource(0);
-        imageUri = null;
+    private void deleteImage(String img) {
+        switch(img) {
+            case "journal":
+                journalImg.setImageResource(R.drawable.add_image);
+                journalImgUri = null;
+                break;
+
+            case "task":
+                taskImg.setImageResource(R.drawable.add_image);
+                taskImgUri = null;
+                break;
+
+            case "planner":
+                plannerImg.setImageResource(R.drawable.add_image);
+                plannerImgUri = null;
+                break;
+        }
     }
 
     private void loadJournalEntry(String date) {
@@ -190,17 +297,16 @@ public class JournalEntryActivity extends AppCompatActivity {
 
         if (cursor != null && cursor.moveToFirst()) {
             String text = cursor.getString((int) cursor.getColumnIndex("text"));
-            String imagePath = cursor.getString((int) cursor.getColumnIndex("imagePath"));
+            String journalImgPath = cursor.getString((int) cursor.getColumnIndex("journalImagePath"));
+            String taskImagePath = cursor.getString((int) cursor.getColumnIndex("taskImagePath"));
+            String plannerImagePath = cursor.getString((int) cursor.getColumnIndex("plannerImagePath"));
 
             journalText.setText(text);
-
-            if (imagePath != null) {
-                Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
-                journalImg.setImageBitmap(bitmap);
-            }
+            setImg(journalImgPath, journalImg);
+            setImg(taskImagePath, taskImg);
+            setImg(plannerImagePath, plannerImg);
         } else {
             journalText.setText("");
-            journalImg.setImageResource(0);
         }
 
         if (cursor != null) {
@@ -208,5 +314,44 @@ public class JournalEntryActivity extends AppCompatActivity {
         }
     }
 
+    private void setImg(String imgPath, ImageView imgView) {
+        if (imgPath != null) {
+            if (imgPath.isEmpty()) {
+                imgView.setImageResource(R.drawable.add_image);
+            } else {
+                Bitmap bitmap = BitmapFactory.decodeFile(imgPath);
+                imgView.setImageBitmap(bitmap);
+            }
+        }
+    }
 
+    private void displayJournalImage() {
+        try {
+            Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(journalImgUri));
+            journalImg.setImageBitmap(bitmap);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void displayTaskImage() {
+        try {
+            Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(taskImgUri));
+            taskImg.setImageBitmap(bitmap);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void displayPlannerImage() {
+        try {
+            Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(plannerImgUri));
+            plannerImg.setImageBitmap(bitmap);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
+        }
+    }
 }
